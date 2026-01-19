@@ -1,0 +1,92 @@
+groups:
+  - name: event-processor-alerts
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(events_processed_total{status="error"}[5m]) / rate(events_processed_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate in event processing"
+          description: "Error rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes"
+
+      # Event processing lag
+      - alert: HighProcessingLag
+        expr: kafka_consumer_lag > 10000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Kafka consumer lag"
+          description: "Consumer lag is {{ $value }} messages"
+
+      # Backend health
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend service is down"
+          description: "Backend has been unreachable for more than 1 minute"
+
+      # ClickHouse health
+      - alert: ClickHouseDown
+        expr: up{job="clickhouse"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ClickHouse is down"
+          description: "ClickHouse has been unreachable for more than 1 minute"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container memory usage is high"
+          description: "Memory usage is above 90% for {{ $labels.container_name }}"
+
+      # Slow queries
+      - alert: SlowClickHouseQueries
+        expr: histogram_quantile(0.95, rate(clickhouse_query_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ClickHouse queries are slow"
+          description: "95th percentile query latency is {{ $value | printf \"%.2f\" }} seconds"
+
+      # Low throughput
+      - alert: LowEventThroughput
+        expr: rate(events_processed_total[5m]) < 1
+        for: 15m
+        labels:
+          severity: info
+        annotations:
+          summary: "Low event processing throughput"
+          description: "Event processing rate is below 1 per second for 15 minutes"
+
+  - name: kafka-alerts
+    rules:
+      - alert: KafkaDown
+        expr: up{job="kafka"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafka is down"
+          description: "Kafka broker has been unreachable for more than 1 minute"
+
+      - alert: KafkaUnderReplicatedPartitions
+        expr: kafka_server_replicamanager_underreplicatedpartitions > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka has under-replicated partitions"
+          description: "{{ $value }} partitions are under-replicated"

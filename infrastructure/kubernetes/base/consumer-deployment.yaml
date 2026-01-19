@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-consumer
+  namespace: event-processor
+  labels:
+    app: event-consumer
+    component: worker
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: event-consumer
+  template:
+    metadata:
+      labels:
+        app: event-consumer
+        component: worker
+    spec:
+      containers:
+        - name: consumer
+          image: event-processor-backend:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "app.kafka.consumer"]
+          envFrom:
+            - configMapRef:
+                name: event-processor-config
+            - secretRef:
+                name: event-processor-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import sys; sys.exit(0)"
+            initialDelaySeconds: 30
+            periodSeconds: 30
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: event-consumer-hpa
+  namespace: event-processor
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: event-consumer
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
