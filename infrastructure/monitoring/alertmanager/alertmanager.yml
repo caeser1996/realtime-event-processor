@@ -1,0 +1,41 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'severity']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'default-receiver'
+  routes:
+    - receiver: 'critical-alerts'
+      match:
+        severity: critical
+    - receiver: 'warning-alerts'
+      match:
+        severity: warning
+
+receivers:
+  - name: 'default-receiver'
+    # Configure your notification channels here
+    # Example for Slack:
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/...'
+    #     channel: '#alerts'
+    #     send_resolved: true
+
+  - name: 'critical-alerts'
+    # Configure critical alert notifications
+    # Example for PagerDuty:
+    # pagerduty_configs:
+    #   - service_key: 'your-service-key'
+
+  - name: 'warning-alerts'
+    # Configure warning alert notifications
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
