@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg: #0f172a;
+  --color-card: #1e293b;
+  --color-border: #334155;
+  --color-text: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --color-primary: #0ea5e9;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Card styles */
+.card {
+  @apply bg-dashboard-card rounded-lg border border-dashboard-border p-4;
+}
+
+/* Stat card animation */
+.stat-value {
+  @apply text-3xl font-bold;
+  transition: transform 0.2s ease-in-out;
+}
+
+.stat-value.updated {
+  transform: scale(1.05);
+}
+
+/* Pulse animation for live indicator */
+.live-indicator {
+  @apply relative;
+}
+
+.live-indicator::before {
+  content: '';
+  @apply absolute w-2 h-2 bg-green-500 rounded-full -left-4 top-1/2 -translate-y-1/2;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Chart container */
+.chart-container {
+  @apply relative h-64 w-full;
+}
+
+/* Event type badges */
+.event-badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.event-badge.user_action {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.event-badge.page_view {
+  @apply bg-green-100 text-green-800;
+}
+
+.event-badge.click {
+  @apply bg-purple-100 text-purple-800;
+}
+
+.event-badge.form_submit {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.event-badge.purchase {
+  @apply bg-emerald-100 text-emerald-800;
+}
+
+.event-badge.error {
+  @apply bg-red-100 text-red-800;
+}
+
+.event-badge.custom {
+  @apply bg-gray-100 text-gray-800;
+}
+
+/* Loading spinner */
+.spinner {
+  @apply animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500;
+}
+
+/* Connection status */
+.connection-status {
+  @apply flex items-center gap-2 text-sm;
+}
+
+.connection-status .dot {
+  @apply w-2 h-2 rounded-full;
+}
+
+.connection-status.connected .dot {
+  @apply bg-green-500;
+}
+
+.connection-status.disconnected .dot {
+  @apply bg-red-500;
+}
+
+.connection-status.connecting .dot {
+  @apply bg-yellow-500 animate-pulse;
+}

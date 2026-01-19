@@ -1,0 +1,115 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: clickhouse
+  namespace: event-processor
+spec:
+  ports:
+    - port: 8123
+      name: http
+    - port: 9000
+      name: native
+    - port: 9363
+      name: metrics
+  selector:
+    app: clickhouse
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: clickhouse
+  namespace: event-processor
+spec:
+  serviceName: clickhouse
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clickhouse
+  template:
+    metadata:
+      labels:
+        app: clickhouse
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9363"
+    spec:
+      containers:
+        - name: clickhouse
+          image: clickhouse/clickhouse-server:23.8
+          ports:
+            - containerPort: 8123
+            - containerPort: 9000
+            - containerPort: 9363
+          env:
+            - name: CLICKHOUSE_DB
+              value: "events"
+            - name: CLICKHOUSE_USER
+              value: "default"
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: event-processor-secrets
+                  key: CLICKHOUSE_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/clickhouse
+            - name: config
+              mountPath: /docker-entrypoint-initdb.d
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 8123
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 8123
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: config
+          configMap:
+            name: clickhouse-init
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 20Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clickhouse-init
+  namespace: event-processor
+data:
+  init.sql: |
+    CREATE DATABASE IF NOT EXISTS events;
+    USE events;
+    CREATE TABLE IF NOT EXISTS events (
+        id UUID DEFAULT generateUUIDv4(),
+        event_type LowCardinality(String),
+        user_id Nullable(String),
+        session_id Nullable(String),
+        payload String,
+        metadata String,
+        timestamp DateTime64(3) DEFAULT now64(3),
+        processed_at DateTime64(3) DEFAULT now64(3),
+        source_ip Nullable(String),
+        user_agent Nullable(String),
+        date Date DEFAULT toDate(timestamp)
+    ) ENGINE = MergeTree()
+    PARTITION BY toYYYYMM(date)
+    ORDER BY (event_type, timestamp, id)
+    TTL date + INTERVAL 90 DAY
+    SETTINGS index_granularity = 8192;
